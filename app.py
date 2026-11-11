@@ -9,7 +9,9 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 app = Flask(__name__)
 
-DATA_DIR = "data"
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+PLACEHOLDER_VALUES = {"", "-", "n/a", "na", "none", "null"}
+RELEVANCE_THRESHOLD = 0.15
 
 
 # ----------------------------------
@@ -22,7 +24,7 @@ def load_kurals():
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    return data.get("kural", [])
+    return data.get("kural", []) if isinstance(data, dict) else []
 
 
 def load_chanakya():
@@ -37,89 +39,124 @@ def load_chanakya():
     if isinstance(data, list):
         return data
 
-    return data.get("verses", [])
+    return data.get("verses", []) if isinstance(data, dict) else []
 
 
 kurals = load_kurals()
 chanakya = load_chanakya()
 
 
+def meaningful_text(value):
+    return isinstance(value, str) and value.strip().lower() not in PLACEHOLDER_VALUES
+
+
+def normalize_kural(item):
+    if not isinstance(item, dict):
+        return None
+
+    try:
+        number = int(item["Number"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+    line1 = item.get("Line1", "")
+    line2 = item.get("Line2", "")
+    if not meaningful_text(line1) and not meaningful_text(line2):
+        return None
+
+    explanation = next(
+        (item.get(key, "") for key in ("mv", "sp", "mk", "explanation") if meaningful_text(item.get(key, ""))),
+        ""
+    )
+    search_parts = [line1, line2, explanation, item.get("Translation", "")]
+    chapter = item.get("Chapter", "")
+
+    return {
+        "collection": "திருக்குறள்",
+        "number": number,
+        "chapter": chapter.strip() if meaningful_text(chapter) else "",
+        "chapter_number": (number - 1) // 10 + 1,
+        "line1": line1.strip() if meaningful_text(line1) else "",
+        "line2": line2.strip() if meaningful_text(line2) else "",
+        "text": "\n".join(part for part in (line1, line2) if meaningful_text(part)),
+        "explanation": explanation,
+        "translation": item.get("Translation", "") if meaningful_text(item.get("Translation", "")) else "",
+        "search_text": " ".join(part for part in search_parts if meaningful_text(part))
+    }
+
+
+def normalize_chanakya(item, fallback_number):
+    if not isinstance(item, dict):
+        return None
+
+    verse_text = next(
+        (item.get(key, "") for key in ("text", "verse", "Tamil") if meaningful_text(item.get(key, ""))),
+        ""
+    )
+    if not meaningful_text(verse_text):
+        return None
+
+    verse_id = item.get("verse_id", fallback_number)
+    chapter = item.get("chapter", "")
+    meaning = item.get("meaning", "")
+    source = item.get("source", "")
+
+    return {
+        "collection": "சாணக்கியநீதி",
+        "number": str(verse_id),
+        "chapter": chapter.strip() if meaningful_text(chapter) else "",
+        "chapter_number": "",
+        "line1": verse_text.strip(),
+        "line2": "",
+        "text": verse_text.strip(),
+        "explanation": meaning.strip() if meaningful_text(meaning) else "",
+        "translation": "",
+        "source": source.strip() if meaningful_text(source) else "",
+        "search_text": " ".join(part.strip() for part in (verse_text, meaning) if meaningful_text(part))
+    }
+
+
 # ----------------------------------
 # 2. PREPARE THIRUKKURAL RECORDS
 # ----------------------------------
 
-records = []
-
-for k in kurals:
-    records.append({
-        "collection": "திருக்குறள்",
-        "number": int(k["Number"]),
-        "chapter": k.get("Chapter", ""),
-        "text": k.get("Line1", "") + "\n" + k.get("Line2", ""),
-        "explanation": (
-            k.get("mv", "")
-            or k.get("sp", "")
-            or k.get("mk", "")
-        ),
-        "translation": k.get("Translation", ""),
-        "search_text": " ".join([
-            k.get("Line1", ""),
-            k.get("Line2", ""),
-            k.get("mv", ""),
-            k.get("sp", ""),
-            k.get("mk", ""),
-            k.get("Translation", "")
-        ])
-    })
+kurals = [record for item in kurals if (record := normalize_kural(item))]
 
 
 # ----------------------------------
 # 3. PREPARE CHANAKYANIDHI RECORDS
 # ----------------------------------
 
-for index, item in enumerate(chanakya):
-    if not isinstance(item, dict):
-        continue
+chanakya = [
+    record for index, item in enumerate(chanakya, start=1)
+    if (record := normalize_chanakya(item, index))
+]
 
-    verse_text = (
-        item.get("text")
-        or item.get("verse")
-        or item.get("Tamil")
-        or ""
-    )
-
-    if not verse_text.strip():
-        continue
-
-    records.append({
-        "collection": "சாணக்கியநீதி",
-        "number": item.get("verse_id", index + 1),
-        "chapter": item.get("chapter", ""),
-        "text": verse_text,
-        "explanation": item.get("meaning", ""),
-        "translation": "",
-        "search_text": verse_text + " " + item.get("meaning", "")
-    })
+records = kurals + chanakya
 
 
 # ----------------------------------
 # 4. BUILD LIGHTWEIGHT SEARCH ENGINE
 # ----------------------------------
 
-vectorizer = None
-matrix = None
+def build_index(literature):
+    if not literature:
+        return None, None
 
-if records:
-    vectorizer = TfidfVectorizer(
+    index_vectorizer = TfidfVectorizer(
         analyzer="char",
         ngram_range=(2, 5),
         max_features=60000,
         sublinear_tf=True
     )
 
-    matrix = vectorizer.fit_transform(
-        [r["search_text"] for r in records]
+    return index_vectorizer, index_vectorizer.fit_transform(
+        [record["search_text"] for record in literature]
     )
+
+
+kural_vectorizer, kural_matrix = build_index(kurals)
+chanakya_vectorizer, chanakya_matrix = build_index(chanakya)
 
 
 # ----------------------------------
@@ -192,67 +229,65 @@ def expand_query(query):
 # ----------------------------------
 
 def search_wisdom(query, limit=5):
-
-    if not records or vectorizer is None:
+    if not isinstance(query, str) or not query.strip():
         return []
 
     # Exact Kural lookup
     number = exact_kural_number(query)
 
     if number is not None:
-        for record in records:
-            if (
-                record["collection"] == "திருக்குறள்"
-                and record["number"] == number
-            ):
+        for record in kurals:
+            if record["number"] == number:
                 return [format_result(record, 1.0)]
 
         return []
 
-    # Situation-based search
     expanded = expand_query(query)
-
-    query_vector = vectorizer.transform([expanded])
-
-    scores = cosine_similarity(
-        query_vector, matrix
-    ).flatten()
-
-    best_indices = scores.argsort()[::-1]
-
     results = []
 
-    for index in best_indices:
-
-        score = float(scores[index])
-
-        # Reject weak matches
-        if score < 0.08:
+    for literature, index_vectorizer, index_matrix in (
+        (kurals, kural_vectorizer, kural_matrix),
+        (chanakya, chanakya_vectorizer, chanakya_matrix)
+    ):
+        if not literature or index_vectorizer is None or index_matrix is None:
             continue
 
-        record = records[index]
+        query_vector = index_vectorizer.transform([expanded])
 
-        results.append(format_result(record, score))
+        scores = cosine_similarity(query_vector, index_matrix).flatten()
+        best_indices = scores.argsort()[::-1]
 
-        if len(results) >= limit:
-            break
+        for index in best_indices:
+            score = float(scores[index])
+            if score < RELEVANCE_THRESHOLD:
+                break
+            results.append(format_result(literature[index], score))
 
-    return results
+    results.sort(key=lambda result: result["score"], reverse=True)
+    return results[:limit]
 
 
 def format_result(record, score):
 
+    reference_parts = [record["collection"]]
+    if record.get("chapter"):
+        reference_parts.append(record["chapter"])
+    elif record.get("chapter_number"):
+        reference_parts.append(f'அதிகாரம் எண்: {record["chapter_number"]}')
+    reference_parts.append(f'எண்: {record["number"]}')
+
     return {
         "collection": record["collection"],
-        "reference": (
-            f'{record["collection"]} | '
-            f'எண்: {record["number"]}'
-        ),
+        "reference": " | ".join(reference_parts),
         "number": record["number"],
         "chapter": record["chapter"],
+        "chapter_number": record.get("chapter_number", ""),
+        "line1": record.get("line1", ""),
+        "line2": record.get("line2", ""),
         "text": record["text"],
         "explanation": record["explanation"],
         "translation": record["translation"],
+        "source": record.get("source", ""),
         "score": round(score, 3)
     }
 

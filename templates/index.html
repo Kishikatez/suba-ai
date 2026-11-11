@@ -42,6 +42,14 @@
             margin: 12px 0;
             background: #211d30;
         }
+        .couplet {
+            margin: 12px 0;
+            line-height: 1.9;
+            white-space: normal;
+        }
+        .couplet-line {
+            display: block;
+        }
         input {
             box-sizing: border-box;
             width: 78%;
@@ -116,7 +124,17 @@ async function sendMessage() {
         heading.textContent = item.reference;
 
         const text = document.createElement("p");
-        text.textContent = item.text;
+        text.className = "couplet";
+
+        const line1 = document.createElement("span");
+        line1.className = "couplet-line";
+        line1.textContent = item.line1 || item.text;
+
+        const line2 = document.createElement("span");
+        line2.className = "couplet-line";
+        line2.textContent = item.line2 || "";
+
+        text.append(line1, line2);
 
         const score = document.createElement("small");
         score.textContent = "Match score: " + item.score;
