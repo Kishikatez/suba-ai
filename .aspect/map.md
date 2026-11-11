@@ -55,4 +55,4 @@ _Naming patterns and styles. Follow these for consistency._
 - `create_*` → `create_audio` (1 occurrences)
 
 
-_Generated: 2026-11-11T08:32:49.802Z_
+_Generated: 2026-11-11T08:55:26.647Z_

@@ -19,4 +19,4 @@ _Server handlers, API routes, application entry._
 **Test files:** 1 | **Dirs:** tests
 
 
-_Generated: 2026-11-11T08:32:49.781Z_
+_Generated: 2026-11-11T08:55:26.634Z_
