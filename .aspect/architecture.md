@@ -12,11 +12,11 @@ _Where code execution begins. Categorized by type with detection confidence._
 
 _Server handlers, API routes, application entry._
 
-- 🟢 `app.py`: Flask (2 routes)
+- 🟢 `app.py`: Flask (3 routes)
 
 ## Tests
 
 **Test files:** 1 | **Dirs:** tests
 
 
-_Generated: 2026-11-11T07:08:30.187Z_
+_Generated: 2026-11-11T08:32:49.781Z_

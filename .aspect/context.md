@@ -5,4 +5,4 @@ _Data flow and co-location context. Use to understand which files work together.
 _No dependency data available. Run examination first._
 
 
-_Generated: 2026-11-11T07:08:30.198Z_
+_Generated: 2026-11-11T08:32:49.797Z_

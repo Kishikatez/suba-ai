@@ -47,6 +47,8 @@
       "computedAt": 1794378894446
     }
   },
-  "gitignore": {},
+  "gitignore": {
+    ".aspect/": true
+  },
   "assistants": {}
 }

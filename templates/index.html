@@ -4,43 +4,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SUBA AI</title>
+    <title>சுபா ஏஐ </title>
     <style>
         body {
             margin: 0;
-            font-family: Arial, sans-serif;
-            background: #100e18;
-            color: white;
+            font-family: Georgia, "Times New Roman", serif;
+            background: #f7fbf7;
+            color: #23352a;
         }
         .container {
-            max-width: 750px;
-            margin: 35px auto;
-            padding: 20px;
+            max-width: 820px;
+            margin: 28px auto;
+            padding: 24px;
         }
-        h1 { color: #b99aff; text-align: center; }
-        .subtitle { text-align: center; color: #aaa; }
+        h1 { color: #286b48; text-align: center; font-weight: 600; letter-spacing: 0; }
+        .subtitle { text-align: center; color: #668271; }
         #chat {
-            height: 390px;
+            height: 430px;
             overflow-y: auto;
-            background: #1d1929;
-            padding: 18px;
-            border-radius: 12px;
+            background: #ffffff;
+            border: 1px solid #d5e7d8;
+            padding: 20px;
+            border-radius: 10px;
             margin: 20px 0;
+            box-shadow: 0 8px 24px rgba(49, 104, 70, 0.06);
         }
         .message {
             padding: 12px;
             margin: 12px 0;
-            border-radius: 9px;
+            border-radius: 8px;
             line-height: 1.7;
             overflow-wrap: anywhere;
         }
-        .user { background: #49317b; }
-        .bot { background: #292438; }
+        .message-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .message-row > span {
+            flex: 1;
+        }
+        .user { background: #e4f3e7; color: #244b34; margin-left: 12%; }
+        .bot { background: #f2f8f2; color: #304c39; margin-right: 12%; }
         .verse {
-            border-left: 3px solid #b99aff;
+            border-left: 3px solid #78b58b;
             padding: 12px;
             margin: 12px 0;
-            background: #211d30;
+            background: #fbfefb;
+            color: #304c39;
+            border-top: 1px solid #e1efe3;
+            border-right: 1px solid #e1efe3;
+            border-bottom: 1px solid #e1efe3;
         }
         .couplet {
             margin: 12px 0;
@@ -52,25 +66,57 @@
         }
         input {
             box-sizing: border-box;
-            width: 78%;
+            width: 64%;
             padding: 14px;
-            border-radius: 8px;
-            border: 0;
+            border-radius: 7px;
+            border: 1px solid #c9dfce;
+            background: #ffffff;
+            color: #23352a;
+            font: inherit;
         }
         button {
             padding: 14px;
-            background: #9264e8;
+            background: #3e875d;
             color: white;
-            border: 0;
-            border-radius: 8px;
+            border: 1px solid #34764f;
+            border-radius: 7px;
             cursor: pointer;
+            font: inherit;
         }
-        .stats { color: #aaa; text-align: center; font-size: 13px; }
+        .voice-button {
+            width: 46px;
+            padding: 14px 0;
+            background: #6fa77c;
+            border-color: #5e956c;
+        }
+        .voice-button.listening {
+            background: #bd5a58;
+            border-color: #a74b49;
+        }
+        .voice-button.speaking {
+            background: #3b9a62;
+            border-color: #318454;
+        }
+        .speak-button {
+            flex: 0 0 auto;
+            padding: 6px 9px;
+            background: transparent;
+            border: 0;
+            color: #43815a;
+            font-size: 16px;
+        }
+        .speak-button:hover,
+        .voice-button:hover,
+        button:hover {
+            filter: brightness(1.12);
+        }
+        .stats { color: #708978; text-align: center; font-size: 13px; }
+        .voice-status { min-height: 20px; color: #5d8068; font-size: 13px; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>🪷 SUBA AI</h1>
+    <h1>🪷 சுபா ஏஐ </h1>
     <p class="subtitle">உங்கள் வாழ்க்கைக்கு ஏற்ற தமிழ் ஞானம்</p>
 
     <p class="stats">
@@ -80,40 +126,225 @@
 
     <div id="chat">
         <div class="message bot">
-            வணக்கம்! நான் SUBA. உங்களுக்கு என்ன நடந்தாலும்
-            சொல்லுங்கள். அதற்கு ஏற்ற ஞானக் கருத்துகளைத் தேடித் தருகிறேன்.
+            <div class="message-row">
+                <span>வணக்கம்! நான் சுபா ஏஐ . உங்களுக்கு என்ன நடந்தாலும்
+                சொல்லுங்கள். அதற்கு ஏற்ற ஞானக் கருத்துகளைத் தேடித் தருகிறேன்.</span>
+                <button class="speak-button" type="button" title="பதிலை கேளுங்கள்" aria-label="பதிலை கேளுங்கள்"
+                    onclick="speakTamil(this.previousElementSibling.textContent)">🔊</button>
+            </div>
         </div>
     </div>
 
     <div>
         <input id="message" placeholder="உங்கள் மனதில் இருப்பதைச் சொல்லுங்கள்...">
-        <button onclick="sendMessage()">Send</button>
+        <button id="voiceButton" class="voice-button" type="button" title="தமிழில் பேசுங்கள்" aria-label="தமிழில் பேசுங்கள்">🎙</button>
+        <button type="button" onclick="sendMessage()">Send</button>
+        <p id="voiceStatus" class="voice-status" aria-live="polite"></p>
     </div>
 </div>
 
 <script>
+const messageInput = document.getElementById("message");
+const voiceButton = document.getElementById("voiceButton");
+const voiceStatus = document.getElementById("voiceStatus");
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let currentAudio = null;
+let speechController = null;
+let recognitionActive = false;
+let requestInProgress = false;
+const conversation = [];
+
+async function fetchWithTimeout(url, options, timeoutMs = 15000) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    const externalSignal = options.signal;
+    const abortRequest = () => controller.abort();
+
+    if (externalSignal) {
+        if (externalSignal.aborted) controller.abort();
+        externalSignal.addEventListener("abort", abortRequest, {once: true});
+    }
+
+    try {
+        return await fetch(url, {...options, signal: controller.signal});
+    } finally {
+        clearTimeout(timeout);
+        externalSignal?.removeEventListener("abort", abortRequest);
+    }
+}
+
+function setVoiceButtonState(state) {
+    voiceButton.classList.remove("listening", "speaking");
+
+    if (state === "listening") {
+        voiceButton.classList.add("listening");
+        voiceButton.textContent = "⏹";
+        voiceButton.title = "குரல் பதிவை நிறுத்துங்கள்";
+        voiceButton.setAttribute("aria-label", "குரல் பதிவை நிறுத்துங்கள்");
+    } else if (state === "speaking") {
+        voiceButton.classList.add("speaking");
+        voiceButton.textContent = "🔊";
+        voiceButton.title = "தமிழ் பேச்சை நிறுத்துங்கள்";
+        voiceButton.setAttribute("aria-label", "தமிழ் பேச்சை நிறுத்துங்கள்");
+    } else {
+        voiceButton.textContent = "🎙";
+        voiceButton.title = "தமிழில் பேசுங்கள்";
+        voiceButton.setAttribute("aria-label", "தமிழில் பேசுங்கள்");
+    }
+}
+
+function stopSpeaking() {
+    speechController?.abort();
+    speechController = null;
+
+    if (currentAudio) {
+        currentAudio.pause();
+        if (currentAudio.src.startsWith("blob:")) URL.revokeObjectURL(currentAudio.src);
+        currentAudio.removeAttribute("src");
+        currentAudio.load();
+        currentAudio = null;
+    }
+
+    setVoiceButtonState("idle");
+    voiceStatus.textContent = "";
+}
+
+function speakTamil(text) {
+    stopSpeaking();
+
+    const audio = new Audio();
+    currentAudio = audio;
+    speechController = new AbortController();
+    setVoiceButtonState("speaking");
+    voiceStatus.textContent = "தமிழில் வாசிக்கிறது...";
+
+    fetchWithTimeout("/speak", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({text}),
+        signal: speechController.signal
+    })
+        .then(response => {
+            if (!response.ok) throw new Error("TTS request failed");
+            return response.blob();
+        })
+        .then(blob => {
+            audio.src = URL.createObjectURL(blob);
+            audio.onended = () => {
+                URL.revokeObjectURL(audio.src);
+                voiceStatus.textContent = "";
+                if (currentAudio === audio) currentAudio = null;
+                speechController = null;
+                setVoiceButtonState("idle");
+            };
+            return audio.play();
+        })
+        .catch(() => {
+            if (currentAudio !== audio) return;
+            currentAudio = null;
+            speechController = null;
+            setVoiceButtonState("idle");
+            voiceStatus.textContent = "தானியங்கி குரல் தடுக்கப்பட்டது. 🔊 பொத்தானை அழுத்தி கேட்கலாம்.";
+        });
+}
+
+function setupSpeechRecognition() {
+    if (!SpeechRecognition) {
+        voiceButton.disabled = true;
+        voiceStatus.textContent = "இந்த உலாவியில் தமிழ் குரல் உள்ளீடு இல்லை.";
+        return;
+    }
+
+    recognition = new SpeechRecognition();
+    recognition.lang = "ta-IN";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+        recognitionActive = true;
+        setVoiceButtonState("listening");
+        voiceStatus.textContent = "கேட்கிறேன்...";
+    };
+
+    recognition.onresult = event => {
+        messageInput.value = event.results[0][0].transcript;
+        voiceStatus.textContent = "உங்கள் செய்தி தயாராக உள்ளது.";
+    };
+
+    recognition.onerror = event => {
+        voiceStatus.textContent = event.error === "not-allowed"
+            ? "மைக்ரோஃபோன் அனுமதி தேவை."
+            : "குரல் உள்ளீட்டை மீண்டும் முயற்சிக்கவும்.";
+    };
+
+    recognition.onend = () => {
+        recognitionActive = false;
+        setVoiceButtonState("idle");
+    };
+
+    voiceButton.addEventListener("click", () => {
+        if (recognitionActive) {
+            recognition.stop();
+            return;
+        }
+
+        if (currentAudio || speechController) {
+            stopSpeaking();
+            return;
+        }
+
+        recognition.start();
+    });
+}
+
 async function sendMessage() {
     const input = document.getElementById("message");
     const chat = document.getElementById("chat");
     const message = input.value.trim();
 
-    if (!message) return;
+    if (!message || requestInProgress) return;
+    requestInProgress = true;
+    const sendButton = document.querySelector('button[onclick="sendMessage()"]');
+    sendButton.disabled = true;
 
     chat.innerHTML += `<div class="message user"></div>`;
     chat.lastElementChild.textContent = message;
     input.value = "";
 
-    const response = await fetch("/chat", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({message})
-    });
+    let data;
+    try {
+        const response = await fetchWithTimeout("/chat", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({message, conversation: conversation.slice(-6)})
+        });
+        data = await response.json();
+    } catch (error) {
+        data = {
+            message: "சேவையுடன் தொடர்பு கொள்ள முடியவில்லை. மீண்டும் முயற்சிக்கவும்.",
+            results: []
+        };
+    }
 
-    const data = await response.json();
+    conversation.push({role: "user", text: message});
+    conversation.push({role: "assistant", text: data.message});
 
     const bot = document.createElement("div");
     bot.className = "message bot";
-    bot.textContent = data.message;
+    const botRow = document.createElement("div");
+    botRow.className = "message-row";
+    const botText = document.createElement("span");
+    botText.textContent = data.message;
+    const speakButton = document.createElement("button");
+    speakButton.className = "speak-button";
+    speakButton.type = "button";
+    speakButton.title = "பதிலை கேளுங்கள்";
+    speakButton.setAttribute("aria-label", "பதிலை கேளுங்கள்");
+    speakButton.textContent = "🔊";
+    speakButton.addEventListener("click", () => speakTamil(botText.textContent));
+    botRow.append(botText, speakButton);
+    bot.appendChild(botRow);
     chat.appendChild(bot);
 
     data.results.forEach(item => {
@@ -146,12 +377,27 @@ async function sendMessage() {
         chat.appendChild(card);
     });
 
+    const spokenText = [
+        data.message,
+        ...data.results.slice(0, 3).flatMap(item => [
+            item.reference,
+            item.line1 || item.text,
+            item.line2,
+            item.explanation ? `பொருள்: ${item.explanation}` : ""
+        ])
+    ].filter(Boolean).join(". ");
+    speakTamil(spokenText);
+
     chat.scrollTop = chat.scrollHeight;
+    requestInProgress = false;
+    sendButton.disabled = false;
 }
 
 document.getElementById("message").addEventListener("keydown", e => {
     if (e.key === "Enter") sendMessage();
 });
+
+setupSpeechRecognition();
 </script>
 </body>
 </html>
