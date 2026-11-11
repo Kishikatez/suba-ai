@@ -1,0 +1,139 @@
+
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SUBA AI</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #100e18;
+            color: white;
+        }
+        .container {
+            max-width: 750px;
+            margin: 35px auto;
+            padding: 20px;
+        }
+        h1 { color: #b99aff; text-align: center; }
+        .subtitle { text-align: center; color: #aaa; }
+        #chat {
+            height: 390px;
+            overflow-y: auto;
+            background: #1d1929;
+            padding: 18px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        .message {
+            padding: 12px;
+            margin: 12px 0;
+            border-radius: 9px;
+            line-height: 1.7;
+            overflow-wrap: anywhere;
+        }
+        .user { background: #49317b; }
+        .bot { background: #292438; }
+        .verse {
+            border-left: 3px solid #b99aff;
+            padding: 12px;
+            margin: 12px 0;
+            background: #211d30;
+        }
+        input {
+            box-sizing: border-box;
+            width: 78%;
+            padding: 14px;
+            border-radius: 8px;
+            border: 0;
+        }
+        button {
+            padding: 14px;
+            background: #9264e8;
+            color: white;
+            border: 0;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .stats { color: #aaa; text-align: center; font-size: 13px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🪷 SUBA AI</h1>
+    <p class="subtitle">உங்கள் வாழ்க்கைக்கு ஏற்ற தமிழ் ஞானம்</p>
+
+    <p class="stats">
+        திருக்குறள்: {{ kural_count }} |
+        சாணக்கியநீதி: {{ chanakya_count }}
+    </p>
+
+    <div id="chat">
+        <div class="message bot">
+            வணக்கம்! நான் SUBA. உங்களுக்கு என்ன நடந்தாலும்
+            சொல்லுங்கள். அதற்கு ஏற்ற ஞானக் கருத்துகளைத் தேடித் தருகிறேன்.
+        </div>
+    </div>
+
+    <div>
+        <input id="message" placeholder="உங்கள் மனதில் இருப்பதைச் சொல்லுங்கள்...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+</div>
+
+<script>
+async function sendMessage() {
+    const input = document.getElementById("message");
+    const chat = document.getElementById("chat");
+    const message = input.value.trim();
+
+    if (!message) return;
+
+    chat.innerHTML += `<div class="message user"></div>`;
+    chat.lastElementChild.textContent = message;
+    input.value = "";
+
+    const response = await fetch("/chat", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({message})
+    });
+
+    const data = await response.json();
+
+    const bot = document.createElement("div");
+    bot.className = "message bot";
+    bot.textContent = data.message;
+    chat.appendChild(bot);
+
+    data.results.forEach(item => {
+        const card = document.createElement("div");
+        card.className = "verse";
+
+        const heading = document.createElement("b");
+        heading.textContent = item.reference;
+
+        const text = document.createElement("p");
+        text.textContent = item.text;
+
+        const score = document.createElement("small");
+        score.textContent = "Match score: " + item.score;
+
+        const explanation = document.createElement("p");
+        explanation.textContent = "பொருள்: " + (item.explanation || "விளக்கம் கிடைக்கவில்லை");
+
+        card.append(heading, text, explanation, score);
+        chat.appendChild(card);
+    });
+
+    chat.scrollTop = chat.scrollHeight;
+}
+
+document.getElementById("message").addEventListener("keydown", e => {
+    if (e.key === "Enter") sendMessage();
+});
+</script>
+</body>
+</html>
